@@ -60,7 +60,7 @@ inline const char* get_elf_machine(ElfN_Half e_machine){
 		case EM_RISCV: return "RISC-V";
 		default: return "UNKNOWN";
 		}
-	
+
 }
 
 void print_elf_header(Elf64_Ehdr elf_header) {
@@ -70,17 +70,17 @@ void print_elf_header(Elf64_Ehdr elf_header) {
 		printf("%02x ", elf_header.e_ident[i]);
 	}
 	printf("\n");
-	printf("  %-34s %s\n", "Class:", elf_header.e_ident[EI_CLASS] == ELFCLASS32 ? "ELF32" : 
+	printf("  %-34s %s\n", "Class:", elf_header.e_ident[EI_CLASS] == ELFCLASS32 ? "ELF32" :
 					 elf_header.e_ident[EI_CLASS] == ELFCLASS64 ? "ELF64" : "UNKNOWN");
-	printf("  %-34s %s\n", "Data:", elf_header.e_ident[EI_DATA] == ELFDATA2LSB ? "2's complement, little endian" : 
+	printf("  %-34s %s\n", "Data:", elf_header.e_ident[EI_DATA] == ELFDATA2LSB ? "2's complement, little endian" :
 					elf_header.e_ident[EI_DATA] == ELFDATA2MSB ? "2's complement, big endian" : "UNKNOW");
-	printf("  %-34s %s\n", "Version:",elf_header.e_ident[EI_VERSION] == EV_CURRENT ? "1 (current)" : 
+	printf("  %-34s %s\n", "Version:",elf_header.e_ident[EI_VERSION] == EV_CURRENT ? "1 (current)" :
 					    elf_header.e_ident[EI_VERSION] == EV_NONE ? "0 (invalid)" : "UNKNOWN");
 	printf("  %-34s %s\n", "OS/ABI:", get_elf_osabi(elf_header.e_ident));
 	printf("  %-34s %s\n", "Type:", get_elf_type(elf_header.e_type));
 	printf("  %-34s %s\n", "Machine", get_elf_machine(elf_header.e_machine));
 	printf("  %-34s 0x%x\n", "Version:",elf_header.e_version);
-	
+
 	printf("  %-34s 0x%lx\n", "Entry Point Address", elf_header.e_entry);
 	printf("  %-34s %ld (bytes into file)\n", "Start of program headers:", elf_header.e_phoff);
 	printf("  %-34s %ld (bytes into file)\n", "Start of section headers:", elf_header.e_shoff);
@@ -124,17 +124,17 @@ inline const char* get_section_type_name(ElfN_Word sh_type) {
 }
 
 
-char* get_section_header_name(FILE *fp, char *dest, const ElfN_Ehdr elf_header, const ElfN_Shdr *section_headers, int index){
+char* get_section_header_name(FILE *fp, char *dest, const ElfN_Ehdr* elf_header, const ElfN_Shdr *section_headers, int index){
 	int idx = 0;
 	char ch;
-	const ElfN_Shdr *strtab_hdr = &section_headers[elf_header.e_shstrndx];
+	const ElfN_Shdr *strtab_hdr = &section_headers[elf_header->e_shstrndx];
 	fseek(fp, strtab_hdr->sh_offset + section_headers[index].sh_name, SEEK_SET);
 	do
 	{
 		fread(&ch, sizeof(char), 1, fp);
 		dest[idx++] = ch;
 	} while (ch);
-	dest[idx] = '\0';	  
+	dest[idx] = '\0';
 	return dest;
 }
 
@@ -148,17 +148,17 @@ char* get_section_flag_name(char *dest, uintN_t sh_flags) {
 	return dest;
 }
 
-void print_section_headers(FILE* fp, const ElfN_Ehdr elf_header, const ElfN_Shdr* section_headers, int sh_num) {
+void print_section_headers(FILE* fp, const ElfN_Ehdr* elf_header, const ElfN_Shdr* section_headers, int sh_num) {
 	char buf[100];
 	printf("Section Headers:\n");
-	
+
 #if(NBIT == 32)
 #error "32位的还未实现好, 和gcc的readelf还有不同"
-#endif 
+#endif
 	if(NBIT == 32){
 		printf("  [Nr]  Name              Type                Addr   Off    Size   ES Flg Lk Inf Al\n");
 		for (int i = 0; i < sh_num; i++) {
-			get_section_header_name(fp, buf, elf_header, section_headers, i);
+			get_section_header_name(fp, buf, elf_header, &section_headers[i], i);
 			printf("  [%2d] ", i);
 			printf("%-18s ", buf);
 			printf("%-17s ", get_section_type_name(section_headers[i].sh_type));
@@ -176,9 +176,9 @@ void print_section_headers(FILE* fp, const ElfN_Ehdr elf_header, const ElfN_Shdr
 		printf("  [Nr]  Name             Type               Address         Offset\n"
 		       "        Size             EntSize            Flags Link  Info  Align \n");
 		for (int i = 0; i < sh_num; i++) {
-			
+
 			printf("  [%2d] ", i);
-			printf("%-17s ", get_section_header_name(fp, buf, elf_header, section_headers, i));
+			printf("%-17s ", get_section_header_name(fp, buf, elf_header, &section_headers[i], i));
 			printf("%-17s ", get_section_type_name(section_headers[i].sh_type));
 			printf("%016lx ", section_headers[i].sh_addr);
 			printf("%08lx\n ", section_headers[i].sh_offset);
@@ -206,7 +206,7 @@ char* get_symtab_entry_name(FILE *fp, char *dest, const ElfN_Shdr *strtab_hdr, c
 			return dest;
 		}
 	} while (ch);
-	dest[idx] = '\0';	  
+	dest[idx] = '\0';
 	return dest;
 }
 
@@ -251,7 +251,7 @@ char * get_symtab_entry_ndx_name(char* buf, uint16_t st_shndx){
 	{
 		case SHN_ABS: strcpy(buf, "ABS"); break;
 		case SHN_UNDEF: strcpy(buf, "UND"); break;
-		case SHN_COMMON: strcpy(buf, "COM"); break;	
+		case SHN_COMMON: strcpy(buf, "COM"); break;
 		default: sprintf(buf, "%d", st_shndx);
 	}
 	return buf;
@@ -264,7 +264,7 @@ void print_symtab(FILE* fp, const ElfN_Sym* symtab, const ElfN_Shdr* strtab_hdr,
 	for(int i = 0; i < symtab_size; i++){
 		printf("%5d: ", i);  //num
 		printf("%016lx ", symtab[i].st_value); //value
-		
+
 		printf("%5ld ", symtab[i].st_size);//size
 		printf("%-7s ", get_symtab_entry_type_name(symtab[i].st_info));//type
 		printf("%-6s ", get_symtab_entry_bind_name(symtab[i].st_info));
@@ -281,15 +281,15 @@ ElfN_Ehdr* read_elf_header(FILE* fp, ElfN_Ehdr* dest) {
 	return dest;
 }
 
-ElfN_Shdr* read_section_header(FILE* fp,  ElfN_Shdr* dest, const ElfN_Ehdr elf_header, int index) {
-	fseek(fp, elf_header.e_shoff + index * sizeof(ElfN_Shdr), SEEK_SET);
+ElfN_Shdr* read_section_header(FILE* fp,  ElfN_Shdr* dest, const ElfN_Ehdr* elf_header, int index) {
+	fseek(fp, elf_header->e_shoff + index * sizeof(ElfN_Shdr), SEEK_SET);
 	fread(dest, sizeof(ElfN_Shdr), 1, fp);
 	return dest;
 }
 
-ElfN_Sym* read_symtab(FILE* fp, ElfN_Sym* dest, const ElfN_Shdr symtab_hdr) {
-	fseek(fp, symtab_hdr.sh_offset ,SEEK_SET);
-	fread(dest, sizeof(ElfN_Sym), symtab_hdr.sh_size / symtab_hdr.sh_entsize, fp);
+ElfN_Sym* read_symtab(FILE* fp, ElfN_Sym* dest, const ElfN_Shdr* symtab_hdr) {
+	fseek(fp, symtab_hdr->sh_offset ,SEEK_SET);
+	fread(dest, sizeof(ElfN_Sym), symtab_hdr->sh_size / symtab_hdr->sh_entsize, fp);
 	return dest;
 }
 
